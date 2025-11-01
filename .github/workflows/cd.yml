@@ -27,10 +27,6 @@ jobs:
         uses: securego/gosec@master
         with:
           args: ./...
-
-      - name: Style
-        run: go fmt ./...
-
       - uses: actions/checkout@v2
         with:
           fetch-depth: 1
