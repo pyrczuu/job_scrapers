@@ -1,14 +1,14 @@
 package iternal
 
-import(
+import (
 	"testing"
 )
 
 func TestNormalizeURL(t *testing.T) {
 	tests := []struct {
-		name          string
-		inputURL      string
-		expected      string
+		name     string
+		inputURL string
+		expected string
 	}{
 		{
 			name:     "remove scheme",
@@ -16,13 +16,12 @@ func TestNormalizeURL(t *testing.T) {
 			expected: "blog.boot.dev/path",
 		},
 		{
-			name: "t2",
+			name:     "t2",
 			inputURL: "http://blog.blog.blog.deb.pl",
 			expected: "blog.blog.blog.deb.pl",
-
 		},
 		{
-      name: "t3",
+			name:     "t3",
 			inputURL: "https://g.pl/dev/api/admin/",
 			expected: "g.pl/dev/api/admin",
 		},
