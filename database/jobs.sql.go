@@ -12,22 +12,25 @@ import (
 
 const createJobOffer = `-- name: CreateJobOffer :one
 INSERT INTO job_offers (
-    id, title, company, location, salary, description, url, source, published_at, skills
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING id, title, company, location, salary, description, url, source, published_at, skills, created_at, last_seen_at
+    id, title, company, location, description, url, source, published_at, skills,
+    salary_employment, salary_b2b, salary_contract
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, title, company, location, description, url, source, published_at, skills, created_at, last_seen_at, salary_employment, salary_b2b, salary_contract
 `
 
 type CreateJobOfferParams struct {
-	ID          string         `json:"id"`
-	Title       string         `json:"title"`
-	Company     sql.NullString `json:"company"`
-	Location    sql.NullString `json:"location"`
-	Salary      sql.NullString `json:"salary"`
-	Description sql.NullString `json:"description"`
-	Url         string         `json:"url"`
-	Source      string         `json:"source"`
-	PublishedAt sql.NullTime   `json:"published_at"`
-	Skills      sql.NullString `json:"skills"`
+	ID               string         `json:"id"`
+	Title            string         `json:"title"`
+	Company          sql.NullString `json:"company"`
+	Location         sql.NullString `json:"location"`
+	Description      sql.NullString `json:"description"`
+	Url              string         `json:"url"`
+	Source           string         `json:"source"`
+	PublishedAt      sql.NullTime   `json:"published_at"`
+	Skills           sql.NullString `json:"skills"`
+	SalaryEmployment sql.NullString `json:"salary_employment"`
+	SalaryB2b        sql.NullString `json:"salary_b2b"`
+	SalaryContract   sql.NullString `json:"salary_contract"`
 }
 
 func (q *Queries) CreateJobOffer(ctx context.Context, arg CreateJobOfferParams) (JobOffer, error) {
@@ -36,12 +39,14 @@ func (q *Queries) CreateJobOffer(ctx context.Context, arg CreateJobOfferParams) 
 		arg.Title,
 		arg.Company,
 		arg.Location,
-		arg.Salary,
 		arg.Description,
 		arg.Url,
 		arg.Source,
 		arg.PublishedAt,
 		arg.Skills,
+		arg.SalaryEmployment,
+		arg.SalaryB2b,
+		arg.SalaryContract,
 	)
 	var i JobOffer
 	err := row.Scan(
@@ -49,7 +54,6 @@ func (q *Queries) CreateJobOffer(ctx context.Context, arg CreateJobOfferParams) 
 		&i.Title,
 		&i.Company,
 		&i.Location,
-		&i.Salary,
 		&i.Description,
 		&i.Url,
 		&i.Source,
@@ -57,6 +61,9 @@ func (q *Queries) CreateJobOffer(ctx context.Context, arg CreateJobOfferParams) 
 		&i.Skills,
 		&i.CreatedAt,
 		&i.LastSeenAt,
+		&i.SalaryEmployment,
+		&i.SalaryB2b,
+		&i.SalaryContract,
 	)
 	return i, err
 }
@@ -70,56 +77,8 @@ func (q *Queries) DeleteJobOffer(ctx context.Context, id string) error {
 	return err
 }
 
-const getJobOffer = `-- name: GetJobOffer :one
-SELECT id, title, company, location, salary, description, url, source, published_at, skills, created_at, last_seen_at FROM job_offers WHERE id = ?
-`
-
-func (q *Queries) GetJobOffer(ctx context.Context, id string) (JobOffer, error) {
-	row := q.db.QueryRowContext(ctx, getJobOffer, id)
-	var i JobOffer
-	err := row.Scan(
-		&i.ID,
-		&i.Title,
-		&i.Company,
-		&i.Location,
-		&i.Salary,
-		&i.Description,
-		&i.Url,
-		&i.Source,
-		&i.PublishedAt,
-		&i.Skills,
-		&i.CreatedAt,
-		&i.LastSeenAt,
-	)
-	return i, err
-}
-
-const getJobOfferByURL = `-- name: GetJobOfferByURL :one
-SELECT id, title, company, location, salary, description, url, source, published_at, skills, created_at, last_seen_at FROM job_offers WHERE url = ?
-`
-
-func (q *Queries) GetJobOfferByURL(ctx context.Context, url string) (JobOffer, error) {
-	row := q.db.QueryRowContext(ctx, getJobOfferByURL, url)
-	var i JobOffer
-	err := row.Scan(
-		&i.ID,
-		&i.Title,
-		&i.Company,
-		&i.Location,
-		&i.Salary,
-		&i.Description,
-		&i.Url,
-		&i.Source,
-		&i.PublishedAt,
-		&i.Skills,
-		&i.CreatedAt,
-		&i.LastSeenAt,
-	)
-	return i, err
-}
-
 const listJobOffers = `-- name: ListJobOffers :many
-SELECT id, title, company, location, salary, description, url, source, published_at, skills, created_at, last_seen_at FROM job_offers 
+SELECT id, title, company, location, description, url, source, published_at, skills, created_at, last_seen_at, salary_employment, salary_b2b, salary_contract FROM job_offers 
 ORDER BY created_at DESC 
 LIMIT ? OFFSET ?
 `
@@ -143,7 +102,6 @@ func (q *Queries) ListJobOffers(ctx context.Context, arg ListJobOffersParams) ([
 			&i.Title,
 			&i.Company,
 			&i.Location,
-			&i.Salary,
 			&i.Description,
 			&i.Url,
 			&i.Source,
@@ -151,6 +109,9 @@ func (q *Queries) ListJobOffers(ctx context.Context, arg ListJobOffersParams) ([
 			&i.Skills,
 			&i.CreatedAt,
 			&i.LastSeenAt,
+			&i.SalaryEmployment,
+			&i.SalaryB2b,
+			&i.SalaryContract,
 		); err != nil {
 			return nil, err
 		}
@@ -166,7 +127,7 @@ func (q *Queries) ListJobOffers(ctx context.Context, arg ListJobOffersParams) ([
 }
 
 const listJobOffersByCompany = `-- name: ListJobOffersByCompany :many
-SELECT id, title, company, location, salary, description, url, source, published_at, skills, created_at, last_seen_at FROM job_offers 
+SELECT id, title, company, location, description, url, source, published_at, skills, created_at, last_seen_at, salary_employment, salary_b2b, salary_contract FROM job_offers 
 WHERE company = ?
 ORDER BY published_at DESC
 `
@@ -185,7 +146,6 @@ func (q *Queries) ListJobOffersByCompany(ctx context.Context, company sql.NullSt
 			&i.Title,
 			&i.Company,
 			&i.Location,
-			&i.Salary,
 			&i.Description,
 			&i.Url,
 			&i.Source,
@@ -193,6 +153,9 @@ func (q *Queries) ListJobOffersByCompany(ctx context.Context, company sql.NullSt
 			&i.Skills,
 			&i.CreatedAt,
 			&i.LastSeenAt,
+			&i.SalaryEmployment,
+			&i.SalaryB2b,
+			&i.SalaryContract,
 		); err != nil {
 			return nil, err
 		}
@@ -208,7 +171,7 @@ func (q *Queries) ListJobOffersByCompany(ctx context.Context, company sql.NullSt
 }
 
 const listJobOffersByLocation = `-- name: ListJobOffersByLocation :many
-SELECT id, title, company, location, salary, description, url, source, published_at, skills, created_at, last_seen_at FROM job_offers 
+SELECT id, title, company, location, description, url, source, published_at, skills, created_at, last_seen_at, salary_employment, salary_b2b, salary_contract FROM job_offers 
 WHERE location LIKE ?
 ORDER BY published_at DESC
 `
@@ -227,7 +190,6 @@ func (q *Queries) ListJobOffersByLocation(ctx context.Context, location sql.Null
 			&i.Title,
 			&i.Company,
 			&i.Location,
-			&i.Salary,
 			&i.Description,
 			&i.Url,
 			&i.Source,
@@ -235,6 +197,9 @@ func (q *Queries) ListJobOffersByLocation(ctx context.Context, location sql.Null
 			&i.Skills,
 			&i.CreatedAt,
 			&i.LastSeenAt,
+			&i.SalaryEmployment,
+			&i.SalaryB2b,
+			&i.SalaryContract,
 		); err != nil {
 			return nil, err
 		}
@@ -250,7 +215,7 @@ func (q *Queries) ListJobOffersByLocation(ctx context.Context, location sql.Null
 }
 
 const listJobOffersBySource = `-- name: ListJobOffersBySource :many
-SELECT id, title, company, location, salary, description, url, source, published_at, skills, created_at, last_seen_at FROM job_offers 
+SELECT id, title, company, location, description, url, source, published_at, skills, created_at, last_seen_at, salary_employment, salary_b2b, salary_contract FROM job_offers 
 WHERE source = ?
 ORDER BY published_at DESC 
 LIMIT ? OFFSET ?
@@ -276,7 +241,6 @@ func (q *Queries) ListJobOffersBySource(ctx context.Context, arg ListJobOffersBy
 			&i.Title,
 			&i.Company,
 			&i.Location,
-			&i.Salary,
 			&i.Description,
 			&i.Url,
 			&i.Source,
@@ -284,6 +248,9 @@ func (q *Queries) ListJobOffersBySource(ctx context.Context, arg ListJobOffersBy
 			&i.Skills,
 			&i.CreatedAt,
 			&i.LastSeenAt,
+			&i.SalaryEmployment,
+			&i.SalaryB2b,
+			&i.SalaryContract,
 		); err != nil {
 			return nil, err
 		}
@@ -299,7 +266,7 @@ func (q *Queries) ListJobOffersBySource(ctx context.Context, arg ListJobOffersBy
 }
 
 const listRecentJobOffers = `-- name: ListRecentJobOffers :many
-SELECT id, title, company, location, salary, description, url, source, published_at, skills, created_at, last_seen_at FROM job_offers 
+SELECT id, title, company, location, description, url, source, published_at, skills, created_at, last_seen_at, salary_employment, salary_b2b, salary_contract FROM job_offers 
 ORDER BY published_at DESC 
 LIMIT ?
 `
@@ -318,7 +285,6 @@ func (q *Queries) ListRecentJobOffers(ctx context.Context, limit int64) ([]JobOf
 			&i.Title,
 			&i.Company,
 			&i.Location,
-			&i.Salary,
 			&i.Description,
 			&i.Url,
 			&i.Source,
@@ -326,76 +292,9 @@ func (q *Queries) ListRecentJobOffers(ctx context.Context, limit int64) ([]JobOf
 			&i.Skills,
 			&i.CreatedAt,
 			&i.LastSeenAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const searchJobOffers = `-- name: SearchJobOffers :many
-SELECT id, title, company, location, salary, description, url, source, published_at, skills, created_at, last_seen_at FROM job_offers 
-WHERE 
-    title LIKE ? OR 
-    company LIKE ? OR 
-    description LIKE ? OR
-    skills LIKE ? OR
-    location LIKE ? OR
-    salary LIKE ?
-
-ORDER BY published_at DESC
-LIMIT ? OFFSET ?
-`
-
-type SearchJobOffersParams struct {
-	Title       string         `json:"title"`
-	Company     sql.NullString `json:"company"`
-	Description sql.NullString `json:"description"`
-	Skills      sql.NullString `json:"skills"`
-	Location    sql.NullString `json:"location"`
-	Salary      sql.NullString `json:"salary"`
-	Limit       int64          `json:"limit"`
-	Offset      int64          `json:"offset"`
-}
-
-func (q *Queries) SearchJobOffers(ctx context.Context, arg SearchJobOffersParams) ([]JobOffer, error) {
-	rows, err := q.db.QueryContext(ctx, searchJobOffers,
-		arg.Title,
-		arg.Company,
-		arg.Description,
-		arg.Skills,
-		arg.Location,
-		arg.Salary,
-		arg.Limit,
-		arg.Offset,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []JobOffer{}
-	for rows.Next() {
-		var i JobOffer
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.Company,
-			&i.Location,
-			&i.Salary,
-			&i.Description,
-			&i.Url,
-			&i.Source,
-			&i.PublishedAt,
-			&i.Skills,
-			&i.CreatedAt,
-			&i.LastSeenAt,
+			&i.SalaryEmployment,
+			&i.SalaryB2b,
+			&i.SalaryContract,
 		); err != nil {
 			return nil, err
 		}
@@ -411,29 +310,33 @@ func (q *Queries) SearchJobOffers(ctx context.Context, arg SearchJobOffersParams
 }
 
 const updateJobOffer = `-- name: UpdateJobOffer :one
-UPDATE job_offers 
+UPDATE job_offers
 SET 
     title = ?,
     company = ?,
     location = ?,
-    salary = ?,
     description = ?,
     published_at = ?,
     skills = ?,
+    salary_employment = ?,
+    salary_b2b = ?,
+    salary_contract = ?,
     last_seen_at = CURRENT_TIMESTAMP
 WHERE id = ?
-RETURNING id, title, company, location, salary, description, url, source, published_at, skills, created_at, last_seen_at
+RETURNING id, title, company, location, description, url, source, published_at, skills, created_at, last_seen_at, salary_employment, salary_b2b, salary_contract
 `
 
 type UpdateJobOfferParams struct {
-	Title       string         `json:"title"`
-	Company     sql.NullString `json:"company"`
-	Location    sql.NullString `json:"location"`
-	Salary      sql.NullString `json:"salary"`
-	Description sql.NullString `json:"description"`
-	PublishedAt sql.NullTime   `json:"published_at"`
-	Skills      sql.NullString `json:"skills"`
-	ID          string         `json:"id"`
+	Title            string         `json:"title"`
+	Company          sql.NullString `json:"company"`
+	Location         sql.NullString `json:"location"`
+	Description      sql.NullString `json:"description"`
+	PublishedAt      sql.NullTime   `json:"published_at"`
+	Skills           sql.NullString `json:"skills"`
+	SalaryEmployment sql.NullString `json:"salary_employment"`
+	SalaryB2b        sql.NullString `json:"salary_b2b"`
+	SalaryContract   sql.NullString `json:"salary_contract"`
+	ID               string         `json:"id"`
 }
 
 func (q *Queries) UpdateJobOffer(ctx context.Context, arg UpdateJobOfferParams) (JobOffer, error) {
@@ -441,10 +344,12 @@ func (q *Queries) UpdateJobOffer(ctx context.Context, arg UpdateJobOfferParams) 
 		arg.Title,
 		arg.Company,
 		arg.Location,
-		arg.Salary,
 		arg.Description,
 		arg.PublishedAt,
 		arg.Skills,
+		arg.SalaryEmployment,
+		arg.SalaryB2b,
+		arg.SalaryContract,
 		arg.ID,
 	)
 	var i JobOffer
@@ -453,7 +358,6 @@ func (q *Queries) UpdateJobOffer(ctx context.Context, arg UpdateJobOfferParams) 
 		&i.Title,
 		&i.Company,
 		&i.Location,
-		&i.Salary,
 		&i.Description,
 		&i.Url,
 		&i.Source,
@@ -461,37 +365,45 @@ func (q *Queries) UpdateJobOffer(ctx context.Context, arg UpdateJobOfferParams) 
 		&i.Skills,
 		&i.CreatedAt,
 		&i.LastSeenAt,
+		&i.SalaryEmployment,
+		&i.SalaryB2b,
+		&i.SalaryContract,
 	)
 	return i, err
 }
 
 const upsertJobOffer = `-- name: UpsertJobOffer :one
 INSERT INTO job_offers (
-    id, title, company, location, salary, description, url, source, published_at, skills
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    id, title, company, location, description, url, source, published_at, skills,
+    salary_employment, salary_b2b, salary_contract
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(url) DO UPDATE SET
     title = excluded.title,
     company = excluded.company,
     location = excluded.location,
-    salary = excluded.salary,
     description = excluded.description,
     published_at = excluded.published_at,
     skills = excluded.skills,
+    salary_employment = excluded.salary_employment,
+    salary_b2b = excluded.salary_b2b,
+    salary_contract = excluded.salary_contract,
     last_seen_at = CURRENT_TIMESTAMP
-RETURNING id, title, company, location, salary, description, url, source, published_at, skills, created_at, last_seen_at
+RETURNING id, title, company, location, description, url, source, published_at, skills, created_at, last_seen_at, salary_employment, salary_b2b, salary_contract
 `
 
 type UpsertJobOfferParams struct {
-	ID          string         `json:"id"`
-	Title       string         `json:"title"`
-	Company     sql.NullString `json:"company"`
-	Location    sql.NullString `json:"location"`
-	Salary      sql.NullString `json:"salary"`
-	Description sql.NullString `json:"description"`
-	Url         string         `json:"url"`
-	Source      string         `json:"source"`
-	PublishedAt sql.NullTime   `json:"published_at"`
-	Skills      sql.NullString `json:"skills"`
+	ID               string         `json:"id"`
+	Title            string         `json:"title"`
+	Company          sql.NullString `json:"company"`
+	Location         sql.NullString `json:"location"`
+	Description      sql.NullString `json:"description"`
+	Url              string         `json:"url"`
+	Source           string         `json:"source"`
+	PublishedAt      sql.NullTime   `json:"published_at"`
+	Skills           sql.NullString `json:"skills"`
+	SalaryEmployment sql.NullString `json:"salary_employment"`
+	SalaryB2b        sql.NullString `json:"salary_b2b"`
+	SalaryContract   sql.NullString `json:"salary_contract"`
 }
 
 func (q *Queries) UpsertJobOffer(ctx context.Context, arg UpsertJobOfferParams) (JobOffer, error) {
@@ -500,12 +412,14 @@ func (q *Queries) UpsertJobOffer(ctx context.Context, arg UpsertJobOfferParams) 
 		arg.Title,
 		arg.Company,
 		arg.Location,
-		arg.Salary,
 		arg.Description,
 		arg.Url,
 		arg.Source,
 		arg.PublishedAt,
 		arg.Skills,
+		arg.SalaryEmployment,
+		arg.SalaryB2b,
+		arg.SalaryContract,
 	)
 	var i JobOffer
 	err := row.Scan(
@@ -513,7 +427,6 @@ func (q *Queries) UpsertJobOffer(ctx context.Context, arg UpsertJobOfferParams) 
 		&i.Title,
 		&i.Company,
 		&i.Location,
-		&i.Salary,
 		&i.Description,
 		&i.Url,
 		&i.Source,
@@ -521,6 +434,9 @@ func (q *Queries) UpsertJobOffer(ctx context.Context, arg UpsertJobOfferParams) 
 		&i.Skills,
 		&i.CreatedAt,
 		&i.LastSeenAt,
+		&i.SalaryEmployment,
+		&i.SalaryB2b,
+		&i.SalaryContract,
 	)
 	return i, err
 }

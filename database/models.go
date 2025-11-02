@@ -9,16 +9,18 @@ import (
 )
 
 type JobOffer struct {
-	ID          string         `json:"id"`
-	Title       string         `json:"title"`
-	Company     sql.NullString `json:"company"`
-	Location    sql.NullString `json:"location"`
-	Salary      sql.NullString `json:"salary"`
-	Description sql.NullString `json:"description"`
-	Url         string         `json:"url"`
-	Source      string         `json:"source"`
-	PublishedAt sql.NullTime   `json:"published_at"`
-	Skills      sql.NullString `json:"skills"`
-	CreatedAt   sql.NullTime   `json:"created_at"`
-	LastSeenAt  sql.NullTime   `json:"last_seen_at"`
+	ID               string         `json:"id"`
+	Title            string         `json:"title"`
+	Company          sql.NullString `json:"company"`
+	Location         sql.NullString `json:"location"`
+	Description      sql.NullString `json:"description"`
+	Url              string         `json:"url"`
+	Source           string         `json:"source"`
+	PublishedAt      sql.NullTime   `json:"published_at"`
+	Skills           sql.NullString `json:"skills"`
+	CreatedAt        sql.NullTime   `json:"created_at"`
+	LastSeenAt       sql.NullTime   `json:"last_seen_at"`
+	SalaryEmployment sql.NullString `json:"salary_employment"`
+	SalaryB2b        sql.NullString `json:"salary_b2b"`
+	SalaryContract   sql.NullString `json:"salary_contract"`
 }

@@ -1,43 +1,44 @@
 -- name: CreateJobOffer :one
 INSERT INTO job_offers (
-    id, title, company, location, salary, description, url, source, published_at, skills
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    id, title, company, location, description, url, source, published_at, skills,
+    salary_employment, salary_b2b, salary_contract
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
--- name: GetJobOffer :one
-SELECT * FROM job_offers WHERE id = ?;
-
--- name: GetJobOfferByURL :one
-SELECT * FROM job_offers WHERE url = ?;
-
 -- name: UpdateJobOffer :one
-UPDATE job_offers 
+UPDATE job_offers
 SET 
     title = ?,
     company = ?,
     location = ?,
-    salary = ?,
     description = ?,
     published_at = ?,
     skills = ?,
+    salary_employment = ?,
+    salary_b2b = ?,
+    salary_contract = ?,
     last_seen_at = CURRENT_TIMESTAMP
 WHERE id = ?
 RETURNING *;
 
 -- name: UpsertJobOffer :one
 INSERT INTO job_offers (
-    id, title, company, location, salary, description, url, source, published_at, skills
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    id, title, company, location, description, url, source, published_at, skills,
+    salary_employment, salary_b2b, salary_contract
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(url) DO UPDATE SET
     title = excluded.title,
     company = excluded.company,
     location = excluded.location,
-    salary = excluded.salary,
     description = excluded.description,
     published_at = excluded.published_at,
     skills = excluded.skills,
+    salary_employment = excluded.salary_employment,
+    salary_b2b = excluded.salary_b2b,
+    salary_contract = excluded.salary_contract,
     last_seen_at = CURRENT_TIMESTAMP
 RETURNING *;
+
 
 -- name: DeleteJobOffer :exec
 DELETE FROM job_offers WHERE id = ?;
@@ -67,16 +68,3 @@ ORDER BY published_at DESC;
 SELECT * FROM job_offers 
 WHERE location LIKE ?
 ORDER BY published_at DESC;
-
--- name: SearchJobOffers :many
-SELECT * FROM job_offers 
-WHERE 
-    title LIKE ? OR 
-    company LIKE ? OR 
-    description LIKE ? OR
-    skills LIKE ? OR
-    location LIKE ? OR
-    salary LIKE ?
-
-ORDER BY published_at DESC
-LIMIT ? OFFSET ?;
