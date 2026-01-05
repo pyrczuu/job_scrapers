@@ -36,3 +36,9 @@ out
 log*
 chromesessiondir/
 *.sh
+
+#chrome profile path ~pyrczu
+~/.config/google-chrome/
+~/.config/google-chrome/Default
+~/.config/google-chrome/Profile 1
+~/.config/google-chrome/Profile 2

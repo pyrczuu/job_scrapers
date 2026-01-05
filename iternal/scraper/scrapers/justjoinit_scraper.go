@@ -5,12 +5,12 @@ import (
 	"log"
 	"math/rand"
 	"strings"
-	"github.com/pfczx/jobscraper/config"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/chromedp"
+	"github.com/pfczx/jobscraper/config"
 	"github.com/pfczx/jobscraper/iternal/scraper"
 )
 
@@ -42,6 +42,7 @@ func NewJustJoinItScraper(urls []string) *JustJoinItScraper {
 func (*JustJoinItScraper) Source() string {
 	return "https://justjoin.it/"
 }
+
 // extracting data from string html with goquer selectors
 func (p *JustJoinItScraper) extractDataFromHTML(html string, url string) (scraper.JobOffer, error, bool) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))

@@ -2,24 +2,27 @@ package urlsgocraper
 
 import (
 	"context"
+	"log"
+	"math/rand"
+	"strings"
+	"time"
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/chromedp"
 	"github.com/pfczx/jobscraper/config"
-	"log"
-	"math/rand"
-	"strings"
-	"time"
 )
 
 const (
-	nofluffsource                = "https://nofluffjobs.com/pl/artificial-intelligence?criteria=category%3Dsys-administrator,business-analyst,architecture,backend,data,ux,devops,erp,embedded,frontend,fullstack,game-dev,mobile,project-manager,security,support,testing,other"
-	nofluffprefix                = "https://nofluffjobs.com/pl/job/"
-	nofluffofferSelector         = "a.posting-list-item"
-	nofluffcookiesButtonSelector = "button#save"                                // zamknięcie cookies
-	noflufloginButtonSelector    = "button[.//inline-icon[@maticon=\"close\"]]" // zamknięcie prośby o zalogowanie
-	noflufloadMoreSelector       = "button[nfjloadmore]"
+	// tylko do testow
+	//nofluffsource = "https://nofluffjobs.com/pl/Golang"
+	nofluffprefix        = "https://nofluffjobs.com"
+	nofluffsource        = "https://nofluffjobs.com/pl/artificial-intelligence?criteria=category%3Dsys-administrator,business-analyst,architecture,backend,data,ux,devops,erp,embedded,frontend,fullstack,game-dev,mobile,project-manager,security,support,testing,other"
+	nofluffofferSelector = "a.posting-list-item"
+	//nofluffcookiesButtonSelector = "button#save"                                // zamknięcie cookies
+	//noflufloginButtonSelector    = "button[.//inline-icon[@maticon=\"close\"]]" // zamknięcie prośby o zalogowanie
+	nofluffloadMoreSelector = "button[nfjloadmore]"
 )
 
 func getNoFluffUrlsFromContent(html string) ([]string, error) {
@@ -65,6 +68,7 @@ func NofluffScrollAndRead(parentCtx context.Context) ([]string, error) {
 	var html string
 
 	err := chromedp.Run(chromeDpCtx,
+
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			return emulation.SetDeviceMetricsOverride(1280, 900, 1.0, false).Do(ctx)
 		}),
@@ -86,27 +90,26 @@ func NofluffScrollAndRead(parentCtx context.Context) ([]string, error) {
 
 			for i := 1; ; i++ {
 				log.Printf("Iteracja: %v", i)
-				randomDelay := rand.Intn(4000-3000) + 3000
+				randomDelay := rand.Intn(maxTimeMs-minTimeMs) + minTimeMs
 				err := chromedp.Sleep(time.Duration(randomDelay) * time.Millisecond).Do(ctx)
 				if err != nil {
 					return err
 				}
 
-				err = chromedp.Nodes(noflufloadMoreSelector, &nodes, chromedp.AtLeast(0)).Do(ctx)
+				err = chromedp.Nodes(nofluffloadMoreSelector, &nodes, chromedp.AtLeast(0)).Do(ctx)
 				if err != nil {
 					return err
 				}
-				log.Println(nodes)
 				if len(nodes) == 0 {
 					break
 				}
 
-				err = chromedp.Click(noflufloadMoreSelector).Do(ctx)
+				err = chromedp.Click(nofluffloadMoreSelector).Do(ctx)
 				if err != nil {
 					return err
 				}
 
-				randomDelay = rand.Intn((4000+10*i)-(3000+10*i)) + (3000 + 10*i) // czym więcej kontentu (kolejne iteracje) tym dłużej czekamy (wolniejsza strona)
+				randomDelay = rand.Intn((maxTimeMs+10*i)-(minTimeMs+10*i)) + (minTimeMs + 10*i) // czym więcej kontentu (kolejne iteracje) tym dłużej czekamy (wolniejsza strona)
 				err = chromedp.Sleep(time.Duration(randomDelay) * time.Millisecond).Do(ctx)
 				if err != nil {
 					return err
@@ -123,6 +126,5 @@ func NofluffScrollAndRead(parentCtx context.Context) ([]string, error) {
 		return nil, err
 	}
 
-	log.Printf("Collected: %d urls", len(urls))
 	return urls, nil
 }

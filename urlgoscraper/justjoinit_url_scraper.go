@@ -3,21 +3,30 @@ package urlsgocraper
 import (
 	"context"
 	"fmt"
+
 	"log"
 	"math/rand"
 	"strings"
 	"time"
-	"github.com/pfczx/jobscraper/config"
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/chromedp/cdproto/emulation"
+	"github.com/pfczx/jobscraper/config"
+
 	//"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/chromedp"
 )
 
+//browser session data dir
+
 const (
-	justjoinsource         = "https://justjoin.it"
-	justjoinprefix         = "https://justjoin.it/job-offer/"
-	justjoinofferSelector  = "a.offer-card"
+	minTimeMs      = 3000
+	maxTimeMs      = 4000
+	justjoinsource = "https://justjoin.it"
+	//testing only
+	//justjoinsource        = "https://justjoin.it/job-offers/all-locations/go"
+	justjoinprefix        = "https://justjoin.it/"
+	justjoinofferSelector = "a.offer-card"
 )
 
 func getJustJoinJtUrlsFromContent(html string) ([]string, error) {
@@ -61,6 +70,7 @@ func JustJoinScrollAndRead(parentCtx context.Context) ([]string, error) {
 	log.Println("Uruchamianie przeglądarki...")
 
 	err := chromedp.Run(chromeDpCtx,
+
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			return emulation.SetDeviceMetricsOverride(1280, 900, 1.0, false).Do(ctx)
 		}),
@@ -84,6 +94,8 @@ func JustJoinScrollAndRead(parentCtx context.Context) ([]string, error) {
 
 				if currentHeight == prevHeight {
 					sameHeightCount++
+				} else {
+					sameHeightCount = 0
 				}
 
 				if sameHeightCount > 10 {
@@ -104,7 +116,7 @@ func JustJoinScrollAndRead(parentCtx context.Context) ([]string, error) {
 				prevHeight = currentHeight
 				log.Printf("Scrollowanie do: %d", currentHeight)
 
-				randomDelay := rand.Intn(4000-3000) + 4000
+				randomDelay := rand.Intn(maxTimeMs-minTimeMs) + minTimeMs
 				err = chromedp.Sleep(time.Duration(randomDelay) * time.Millisecond).Do(ctx)
 				if err != nil {
 					return err
@@ -114,9 +126,12 @@ func JustJoinScrollAndRead(parentCtx context.Context) ([]string, error) {
 				if err != nil {
 					return err
 				}
+				if err != nil {
+					return err
+				}
 
-				randomDelay = rand.Intn(4000-3000)+4000
-				err = chromedp.Sleep(time.Duration(randomDelay) * time.Second).Do(ctx)
+				randomDelay = rand.Intn(maxTimeMs-minTimeMs) + minTimeMs
+				err = chromedp.Sleep(time.Duration(randomDelay) * time.Millisecond).Do(ctx)
 				if err != nil {
 					return err
 				}
@@ -129,6 +144,5 @@ func JustJoinScrollAndRead(parentCtx context.Context) ([]string, error) {
 		return nil, fmt.Errorf("błąd wykonania chromedp: %w", err)
 	}
 
-	log.Printf("Collected: %d urls", len(urls))	
 	return urls, nil
 }

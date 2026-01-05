@@ -6,13 +6,13 @@ import (
 	"math/rand"
 	"strings"
 	"time"
-	"github.com/pfczx/jobscraper/config"	
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/chromedp"
+	"github.com/pfczx/jobscraper/config"
 	"github.com/pfczx/jobscraper/iternal/scraper"
 )
-
 
 // selectors
 const (
@@ -100,7 +100,7 @@ func (p *NoFluffScraper) extractDataFromHTML(html string, url string) (scraper.J
 	var htmlBuilder strings.Builder
 
 	//description
-	descText := strings.TrimSpace(doc.Find(nofluffjobsdescriptionSelector).Text())
+	descText := strings.TrimSpace(doc.Find(descriptionSelector).Text())
 	if descText != "" {
 		htmlBuilder.WriteString("<p>" + descText + "</p>\n")
 	}
