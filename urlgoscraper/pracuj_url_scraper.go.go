@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
+"github.com/pfczx/jobscraper/config"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/chromedp"
@@ -16,7 +16,6 @@ import (
 //browser session data dir
 
 const (
-	browserDataDir = `/home/devpad/.config/google-chrome-canary/Default`
 	minTimeS       = 5
 	maxTimeS       = 10
 )
@@ -88,7 +87,7 @@ func CollectPracujPl(ctx context.Context) []string {
 	//chromdp config
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.ExecPath("/usr/bin/google-chrome"),
-		chromedp.UserDataDir(browserDataDir),
+		chromedp.UserDataDir(config.PracujDataDir),
 		chromedp.Flag("disable-blink-features", "AutomationControlled"),
 		chromedp.Flag("headless", false),
 		chromedp.Flag("disable-gpu", false),

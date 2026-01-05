@@ -1,69 +1,53 @@
 package scrapers
-//pracuj pl scraper
-import (
-	"bufio"
-	"context"
 
+import (
+	"context"
+	"log"
+	"math/rand"
+	"strings"
+	"time"
+	"github.com/pfczx/jobscraper/config"	
 	"github.com/PuerkitoBio/goquery"
 	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/chromedp"
 	"github.com/pfczx/jobscraper/iternal/scraper"
-	"github.com/pfczx/jobscraper/config"
-	"log"
-	"math/rand"
-	"os"
-	"strings"
-	"time"
 )
 
-var proxyList = []string{
-	"213.73.25.231:8080",
-}
-
-//browser session data dir
-
-const (
-	browserDir = `/usr/bin/google-chrome-canary`
-)
 
 // selectors
 const (
-	titleSelector           = `h1[data-test="text-positionName"]`
-	companySelector         = `h2[data-scroll-id='employer-name']`
-	locationSelector        = `#offer-details li`
-	descriptionSelector     = `ul[data-test="text-about-project"]`                                                         //concat in code
-	skillsSelector          = `span[data-test="item-technologies-expected"], span[data-test="item-technologies-optional"]` //concat in code
-	salarySectionSelector   = `div[data-test="section-salaryPerContractType"]`
-	requirementsSelector   = `section[data-test="section-requirements"]`
-	responsibilitiesSelector =`section[data-test="section-responsibilities"]`
+	nofluffjobstitleSelector            = "div.posting-details-description h1"
+	nofluffjobscompanySelector          = "a#postingCompanyUrl"
+	nofluffjobslocationSelector         = "span.locations-text span"
+	nofluffjobsdescriptionSelector      = "#posting-description nfj-read-more"
+	nofluffjobsskillsSelector           = "#posting-requirements"
+	nofluffjobssalarySectionSelector    = "common-posting-salaries-list div.salary"
+	nofluffjobsrequirementsSelector     = "#JobOfferRequirements nfj-read-more"
+	nofluffjobsresponsibilitiesSelector = "postings-tasks ol li"
+	nofluffjobshybridLocationSelector   = "div.popover-body ul li a"
 )
+
 // wait times are random (min,max) in seconds
-type PracujScraper struct {
+type NoFluffScraper struct {
 	minTimeS int
 	maxTimeS int
 	urls     []string
 }
 
-func NewPracujScraper(urls []string) *PracujScraper {
-	return &PracujScraper{
+func NewNoFluffScraper(urls []string) *NoFluffScraper {
+	return &NoFluffScraper{
 		minTimeS: 5,
 		maxTimeS: 10,
 		urls:     urls,
 	}
 }
 
-func (*PracujScraper) Source() string {
-	return "pracuj.pl"
-}
-
-func waitForCaptcha() {
-	log.Println("Cloudflare detected, solve and press enter")
-	reader := bufio.NewReader(os.Stdin)
-	reader.ReadBytes('\n')
+func (*NoFluffScraper) Source() string {
+	return "https://nofluffjobs.com/pl"
 }
 
 // extracting data from string html with goquer selectors
-func (p *PracujScraper) extractDataFromHTML(html string, url string) (scraper.JobOffer, error, bool) {
+func (p *NoFluffScraper) extractDataFromHTML(html string, url string) (scraper.JobOffer, error, bool) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
 	if err != nil {
 		log.Printf("goquery parse error: %v", err)
@@ -78,9 +62,9 @@ func (p *PracujScraper) extractDataFromHTML(html string, url string) (scraper.Jo
 	var job scraper.JobOffer
 	job.URL = url
 	job.Source = p.Source()
-	job.Title = strings.TrimSpace(doc.Find(titleSelector).Text())
+	job.Title = strings.TrimSpace(doc.Find(nofluffjobstitleSelector).Text())
 
-	company := strings.TrimSpace(doc.Find(companySelector).Text())
+	company := strings.TrimSpace(doc.Find(nofluffjobscompanySelector).Text())
 	unwantedDetails := []string{
 		"O firmie",
 		"About company",
@@ -90,41 +74,39 @@ func (p *PracujScraper) extractDataFromHTML(html string, url string) (scraper.Jo
 	for _, u := range unwantedDetails {
 		company = strings.TrimSuffix(company, u)
 	}
+
 	job.Company = strings.TrimSpace(company)
 
 	//first element is usually an andress
-	job.Location = strings.TrimSpace(doc.Find(locationSelector).First().Find(`div[data-test="offer-badge-title"]`).Text())
-	job.Location += ", "
-	doc.Find(locationSelector).Each(func(i int, li *goquery.Selection) {
-		value := strings.ToLower(strings.TrimSpace(li.Find(`div[data-test="offer-badge-title"]`).Text()))
-
-		if !strings.Contains(value, "zaraz") && (strings.Contains(value, "miejsce pracy") ||
-			strings.Contains(value, "workplace") ||
-			strings.Contains(value, "location") ||
-			strings.Contains(value, "lokalizacja") ||
-			strings.Contains(value, "office") ||
-			strings.Contains(value, "hybrid") ||
-			strings.Contains(value, "hybryd") ||
-			strings.Contains(value, "remote") ||
-			strings.Contains(value, "Company location") ||
-			strings.Contains(value, "praca") ||
-			strings.Contains(value, "work") ||
-			strings.Contains(value, "zdal")) {
-			job.Location += value + ", "
-		}
-
-	})
+	rawLocation := strings.TrimSpace(doc.Find(nofluffjobslocationSelector).Text())
+	// location pin, not always present
+	locationPin := doc.Find("[data-cy='location_pin'] span")
+	if strings.Contains(rawLocation, "Praca zdalna") {
+		job.Location = "Zdalnie"
+	} else if strings.Contains(rawLocation, "Hybrydowo") {
+		job.Location = "Hybrydowo, "
+		// znajduje lokalizacje z pop upa i usuwa słowo "Hybrydowo" które zawsze było przyklejone na końcu bez spacji"
+		location := strings.TrimSpace(doc.Find(nofluffjobshybridLocationSelector).Text())
+		job.Location += location
+	} else {
+		job.Location = ""
+	}
+	if locationPin.Length() > 0 {
+		location := strings.TrimSpace(locationPin.First().Text())
+		location = strings.ReplaceAll(location, "Hybrydowo", "")
+		job.Location += location
+	}
 
 	var htmlBuilder strings.Builder
 
 	//description
-	descText := strings.TrimSpace(doc.Find(descriptionSelector).Text())	
+	descText := strings.TrimSpace(doc.Find(nofluffjobsdescriptionSelector).Text())
 	if descText != "" {
 		htmlBuilder.WriteString("<p>" + descText + "</p>\n")
 	}
 
-	//requirements 
-	doc.Find(requirementsSelector).Each(func(i int, s *goquery.Selection) {
+	//requirements
+	doc.Find(nofluffjobsrequirementsSelector).Each(func(i int, s *goquery.Selection) {
 		heading := strings.TrimSpace(s.Find("h2, h3").First().Text())
 		if heading != "" {
 			htmlBuilder.WriteString("<h2>" + heading + "</h2>\n")
@@ -141,7 +123,7 @@ func (p *PracujScraper) extractDataFromHTML(html string, url string) (scraper.Jo
 	})
 
 	//responsibilities
-	doc.Find(responsibilitiesSelector).Each(func(i int, s *goquery.Selection) {
+	doc.Find(nofluffjobsresponsibilitiesSelector).Each(func(i int, s *goquery.Selection) {
 		heading := strings.TrimSpace(s.Find("h2, h3").First().Text())
 		if heading != "" {
 			htmlBuilder.WriteString("<h3>" + heading + "</h3>\n")
@@ -159,25 +141,43 @@ func (p *PracujScraper) extractDataFromHTML(html string, url string) (scraper.Jo
 
 	job.Description = htmlBuilder.String()
 
-	doc.Find(skillsSelector).Each(func(_ int, s *goquery.Selection) {
-		t := strings.TrimSpace(s.Text())
-		if t != "" {
-			job.Skills = append(job.Skills, t)
-		}
-	})
-	doc.Find(salarySectionSelector).Each(func(_ int, s *goquery.Selection) {
-		text := strings.TrimSpace(s.Text())
-		text = strings.ReplaceAll(text, "\u00A0", " ")
-		text =strings.ReplaceAll(text, "zł", "zł ") 
+	doc.Find(nofluffjobsskillsSelector).Each(func(_ int, s *goquery.Selection) {
+		rawText := strings.ReplaceAll(s.Text(), "Obowiązkowe", "")
 
-		lower := strings.ToLower(text)
+		lines := strings.Split(rawText, "\n")
+
+		var result []string
+		for _, line := range lines {
+			cleaned := strings.TrimSpace(strings.ReplaceAll(line, "\u00a0", " "))
+
+			if cleaned != "" {
+				result = append(result, cleaned)
+			}
+		}
+		job.Skills = result
+	})
+
+	allSalaries := doc.Find("common-posting-salaries-list div.salary")
+	filteredSalaries := allSalaries.Not("[data-cy='JobOffer_SalaryDetails'] div.salary")
+
+	filteredSalaries.Each(func(_ int, s *goquery.Selection) {
+		rawAmount := s.Find("h4").Text()
+		rawDesc := s.Find(".paragraph").Text()
+		lowerDesc := strings.ToLower(rawDesc)
+
+		fullInfo := strings.Join(strings.Fields(strings.ReplaceAll(rawAmount+" "+rawDesc, "\u00a0", " ")), " ")
+		fullInfo = strings.ReplaceAll(fullInfo, "oblicz \"na rękę\"", "")
+		fullInfo = strings.ReplaceAll(fullInfo, "oblicz netto", "")
+
 		switch {
-		case strings.Contains(lower, "prac") || strings.Contains(lower,"employment"):
-			job.SalaryEmployment = text
-		case strings.Contains(lower, "zlec") || strings.Contains(lower,"mandate"):
-			job.SalaryContract = text
-		case strings.Contains(lower, "b2b"):
-			job.SalaryB2B = text
+		case strings.Contains(lowerDesc, "uop") || strings.Contains(lowerDesc, "employment"):
+			job.SalaryEmployment = fullInfo
+
+		case strings.Contains(lowerDesc, "uz") || strings.Contains(lowerDesc, "mandate"):
+			job.SalaryContract = fullInfo
+
+		case strings.Contains(lowerDesc, "b2b"):
+			job.SalaryB2B = fullInfo
 		}
 	})
 
@@ -185,7 +185,7 @@ func (p *PracujScraper) extractDataFromHTML(html string, url string) (scraper.Jo
 }
 
 // html chromedp
-func (p *PracujScraper) getHTMLContent(chromeDpCtx context.Context, url string) (string, error) {
+func (p *NoFluffScraper) getHTMLContent(chromeDpCtx context.Context, url string) (string, error) {
 	var html string
 
 	//chromdp run config
@@ -205,12 +205,12 @@ func (p *PracujScraper) getHTMLContent(chromeDpCtx context.Context, url string) 
 }
 
 // main func for scraping
-func (p *PracujScraper) Scrape(ctx context.Context, q chan<- scraper.JobOffer) error {
+func (p *NoFluffScraper) Scrape(ctx context.Context, q chan<- scraper.JobOffer) error {
 
 	//chromdp config
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.ExecPath(browserDir),
-		chromedp.UserDataDir(config.PracujDataDir),
+		chromedp.ExecPath("/usr/bin/google-chrome"),
+		chromedp.UserDataDir(config.NofluffDataDir),
 		chromedp.Flag("disable-blink-features", "AutomationControlled"),
 		chromedp.Flag("headless", false),
 		chromedp.Flag("disable-gpu", false),
