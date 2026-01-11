@@ -16,14 +16,26 @@ import (
 
 const (
 	// tylko do testow
-	//nofluffsource = "https://nofluffjobs.com/pl/Golang"
-	nofluffprefix        = "https://nofluffjobs.com"
-	nofluffsource        = "https://nofluffjobs.com/pl/artificial-intelligence?criteria=category%3Dsys-administrator,business-analyst,architecture,backend,data,ux,devops,erp,embedded,frontend,fullstack,game-dev,mobile,project-manager,security,support,testing,other"
+	nofluffsource = "https://nofluffjobs.com/pl/Golang"
+	nofluffprefix = "https://nofluffjobs.com"
+	//nofluffsource        = "https://nofluffjobs.com/pl/artificial-intelligence?criteria=category%3Dsys-administrator,business-analyst,architecture,backend,data,ux,devops,erp,embedded,frontend,fullstack,game-dev,mobile,project-manager,security,support,testing,other"
 	nofluffofferSelector = "a.posting-list-item"
 	//nofluffcookiesButtonSelector = "button#save"                                // zamknięcie cookies
 	//noflufloginButtonSelector    = "button[.//inline-icon[@maticon=\"close\"]]" // zamknięcie prośby o zalogowanie
 	nofluffloadMoreSelector = "button[nfjloadmore]"
 )
+
+func UniqueSliceElements[T comparable](inputSlice []T) []T {
+	uniqueSlice := make([]T, 0, len(inputSlice))
+	seen := make(map[T]bool, len(inputSlice))
+	for _, element := range inputSlice {
+		if !seen[element] {
+			uniqueSlice = append(uniqueSlice, element)
+			seen[element] = true
+		}
+	}
+	return uniqueSlice
+}
 
 func getNoFluffUrlsFromContent(html string) ([]string, error) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
@@ -63,7 +75,7 @@ func NofluffScrollAndRead(parentCtx context.Context) ([]string, error) {
 	chromeDpCtx, cancelCtx := chromedp.NewContext(allocCtx)
 	defer cancelCtx()
 
-	log.Println("Uruchamianie przeglądarki...")
+	log.Println("NOFLUFFJOBS: Uruchamianie przeglądarki...")
 
 	var html string
 
@@ -85,11 +97,11 @@ func NofluffScrollAndRead(parentCtx context.Context) ([]string, error) {
 		//	chromedp.NodeVisible,
 		//),
 		chromedp.ActionFunc(func(ctx context.Context) error {
-			log.Println("Strona załadowana. Rozpoczynanie pętli wewnętrznej...")
+			log.Println("NOFLUFFJOBS: Strona załadowana. Rozpoczynanie pętli wewnętrznej...")
 			var nodes []*cdp.Node
 
 			for i := 1; ; i++ {
-				log.Printf("Iteracja: %v", i)
+				log.Printf("NOFLUFFJOBS: Iteracja: %v", i)
 				randomDelay := rand.Intn(maxTimeMs-minTimeMs) + minTimeMs
 				err := chromedp.Sleep(time.Duration(randomDelay) * time.Millisecond).Do(ctx)
 				if err != nil {
@@ -120,7 +132,8 @@ func NofluffScrollAndRead(parentCtx context.Context) ([]string, error) {
 		chromedp.OuterHTML("html", &html),
 	)
 	urls, err = getNoFluffUrlsFromContent(html)
-	log.Printf("Znaleziono %v linków", len(urls))
+	urls = UniqueSliceElements(urls)
+	log.Printf("NOFLUFFJOBS: Usunięto duplikaty, %v unikalnych linków", len(urls))
 	if err != nil {
 		log.Println("Błąd wyciąganie url z kontentu")
 		return nil, err

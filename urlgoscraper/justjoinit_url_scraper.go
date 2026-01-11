@@ -20,11 +20,11 @@ import (
 //browser session data dir
 
 const (
-	minTimeMs      = 3000
-	maxTimeMs      = 4000
-	justjoinsource = "https://justjoin.it"
+	minTimeMs = 3000
+	maxTimeMs = 4000
+	//justjoinsource = "https://justjoin.it"
 	//testing only
-	//justjoinsource        = "https://justjoin.it/job-offers/all-locations/go"
+	justjoinsource        = "https://justjoin.it/job-offers/all-locations/go"
 	justjoinprefix        = "https://justjoin.it/"
 	justjoinofferSelector = "a.offer-card"
 )
@@ -67,7 +67,7 @@ func JustJoinScrollAndRead(parentCtx context.Context) ([]string, error) {
 	chromeDpCtx, cancelCtx := chromedp.NewContext(allocCtx)
 	defer cancelCtx()
 
-	log.Println("Uruchamianie przeglądarki...")
+	log.Println("JUSTJOINIT: Uruchamianie przeglądarki...")
 
 	err := chromedp.Run(chromeDpCtx,
 
@@ -83,7 +83,7 @@ func JustJoinScrollAndRead(parentCtx context.Context) ([]string, error) {
 			var currentHeight int64
 			var html string
 
-			log.Println("Strona załadowana. Rozpoczynanie pętli wewnętrznej...")
+			log.Println("JUSTJOINIT: Strona załadowana. Rozpoczynanie pętli wewnętrznej...")
 
 			sameHeightCount := 0
 			for i := 1; ; i++ {
@@ -99,7 +99,7 @@ func JustJoinScrollAndRead(parentCtx context.Context) ([]string, error) {
 				}
 
 				if sameHeightCount > 10 {
-					log.Printf("Koniec strony, wysokość (%d).", currentHeight)
+					log.Printf("JUSTJOINIT: Koniec strony, wysokość (%d).", currentHeight)
 					break
 				}
 
@@ -109,12 +109,12 @@ func JustJoinScrollAndRead(parentCtx context.Context) ([]string, error) {
 					collected, err := getJustJoinJtUrlsFromContent(html)
 					if err == nil {
 						urls = append(urls, collected...)
-						log.Printf("Iteracja %d: Znaleziono %d linków (razem: %d)", i, len(collected), len(urls))
+						log.Printf("JUSTJOINIT: Iteracja %d: Znaleziono %d linków (razem: %d)", i, len(collected), len(urls))
 					}
 				}
 
 				prevHeight = currentHeight
-				log.Printf("Scrollowanie do: %d", currentHeight)
+				log.Printf("JUSTJOINIT: Scrollowanie do: %d", currentHeight)
 
 				randomDelay := rand.Intn(maxTimeMs-minTimeMs) + minTimeMs
 				err = chromedp.Sleep(time.Duration(randomDelay) * time.Millisecond).Do(ctx)
@@ -144,5 +144,7 @@ func JustJoinScrollAndRead(parentCtx context.Context) ([]string, error) {
 		return nil, fmt.Errorf("błąd wykonania chromedp: %w", err)
 	}
 
+	urls = UniqueSliceElements(urls)
+	log.Printf("JUSTJOINIT: Usunięto duplikaty, %v unikalnych linków", len(urls))
 	return urls, nil
 }
