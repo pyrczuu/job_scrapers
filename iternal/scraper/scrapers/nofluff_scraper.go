@@ -100,7 +100,7 @@ func (p *NoFluffScraper) extractDataFromHTML(html string, url string) (scraper.J
 	var htmlBuilder strings.Builder
 
 	//description
-	descText := strings.TrimSpace(doc.Find(descriptionSelector).Text())
+	descText := strings.TrimSpace(doc.Find(nofluffjobsdescriptionSelector).Text())
 	if descText != "" {
 		htmlBuilder.WriteString("<p>" + descText + "</p>\n")
 	}

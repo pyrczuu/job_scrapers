@@ -20,10 +20,11 @@ import (
 //browser session data dir
 
 const (
-	minTimeMs      = 3000
-	maxTimeMs      = 4000
-	justjoinsource = "https://justjoin.it"
+	minTimeMs = 3000
+	maxTimeMs = 4000
+	//justjoinsource = "https://justjoin.it"
 	//testing only
+	justjoinsource        = "https://justjoin.it/job-offers/all-locations/go"
 	justjoinprefix        = "https://justjoin.it/"
 	justjoinofferSelector = "a.offer-card"
 )
