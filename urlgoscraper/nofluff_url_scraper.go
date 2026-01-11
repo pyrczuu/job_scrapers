@@ -16,9 +16,8 @@ import (
 
 const (
 	// tylko do testow
-	nofluffsource = "https://nofluffjobs.com/pl/Golang"
-	nofluffprefix = "https://nofluffjobs.com"
-	//nofluffsource        = "https://nofluffjobs.com/pl/artificial-intelligence?criteria=category%3Dsys-administrator,business-analyst,architecture,backend,data,ux,devops,erp,embedded,frontend,fullstack,game-dev,mobile,project-manager,security,support,testing,other"
+	nofluffprefix        = "https://nofluffjobs.com"
+	nofluffsource        = "https://nofluffjobs.com/pl/artificial-intelligence?criteria=category%3Dsys-administrator,business-analyst,architecture,backend,data,ux,devops,erp,embedded,frontend,fullstack,game-dev,mobile,project-manager,security,support,testing,other"
 	nofluffofferSelector = "a.posting-list-item"
 	//nofluffcookiesButtonSelector = "button#save"                                // zamknięcie cookies
 	//noflufloginButtonSelector    = "button[.//inline-icon[@maticon=\"close\"]]" // zamknięcie prośby o zalogowanie
